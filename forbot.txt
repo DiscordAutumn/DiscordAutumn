@@ -1,0 +1,499 @@
+const http = require('http');
+const express = require('express');
+const app = express();
+app.get("/", (request, response) => {
+ console.log(Date.now() + " Just got pinged!");
+ response.sendStatus(200);
+});
+app.listen(process.env.PORT);
+setInterval(() => {
+ http.get(`http://${process.env.PROJECT_DOMAIN}.glitch.me/`);
+}, 279999);
+
+const config = require('./config.json');
+const guild = require('./guildsettings.json');
+
+
+const Discord = require("discord.js");
+const client = new Discord.Client();
+
+const talkedRecently = new Set();
+
+let help = "```\n \
+==General commands== \n \n \
+m:help | Need any help \n \
+m:ping | Pong! \n \
+m:botinfo | Shows bot information \n \
+m:servers | In how many servers am I? \n \
+m:support | Need any help? \n \
+m:invite | Invite me to your server \n \
+m:userinfo <user> | Shows information about provided user \n \
+\n \
+==Moderator commands== \n \n \
+m:kick <user> <reason> | Kicks an user \n \
+m:ban <user> <reason> | Bans an user \n \
+m:mute <user> <reason> | Mutes an user \n \
+m:unmute <user> <reason> | Unmutes an user \n \
+          ```";
+
+client.on("ready", () => {
+  console.log("I am ready!");
+  client.user.setActivity('m:help', { type: 'PLAYING' });
+});
+
+var statustags = {
+  'online' : '<:online:415517547945918474> Online',
+  'dnd' : '<:dnd:415517547861901312> Do not disturb',
+  'idle' : '<:away:415517547719557121> Idle',
+  'invisible' : '<:invisible:415517547715231745> Invisible'
+};
+
+client.on('guildMemberAdd', (member) => {
+  
+  let joinembed = {embed: {
+    color: 0xB8E986,
+
+    title: ":arrow_right: User joined",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: member.user.tag + ' **['+member.id+']**'
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+  
+  client.channels.get(guild[member.guild.id].modlogchannel).send(joinembed).catch(console.error);
+  
+});
+
+client.on('guildMemberRemove', (member) => {
+  
+  let leaveembed = {embed: {
+    color: 0xE87D5D,
+
+    title: ":arrow_left: User left",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: member.user.tag + ' **['+member.id+']**'
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+  
+  client.channels.get(guild[member.guild.id].modlogchannel).send(leaveembed).catch(console.error);
+  
+});
+
+client.on("messageDelete", (message) => {
+  
+  let deleteembed = {embed: {
+    color: 0xFFA500,
+    author: {
+      name: message.author.name,
+      icon_url: message.author.avatarURL
+    },
+    title: ":scissors: Message deleted",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: message.author.tag + ' **['+message.author.id+']**'
+      },
+      {
+        name: ":notepad_spiral: Message content",
+        value: message.content
+      },
+      {
+        name: ":bookmark_tabs: Channel",
+        value: message.channel.name + ' **[' + message.channel.id + ']**',
+        inline: true
+      },
+      {
+        name: ":id: ID",
+        value: message.id,
+        inline: true
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+  
+  client.channels.get(guild[message.guild.id].modlogchannel).send(deleteembed).catch(console.error);
+  
+});
+
+client.on("message", (message) => {
+  
+  if(message.author.bot) return;
+  
+  var guildid = message.guild.id;
+  
+  
+  if(guild[guildid].badwords.some(word => message.content.includes(word)) ) {
+    
+    var msg = message;
+    
+    let deleteembed = {embed: {
+    color: 0xFFA500,
+    author: {
+      name: message.author.name,
+      icon_url: message.author.avatarURL
+    },
+    title: ":scissors: Message deleted",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: msg.author.tag + ' **['+msg.author.id+']**'
+      },
+      {
+        name: ":notepad_spiral: Content",
+        value: msg.content
+      },
+      {
+        name: ":bookmark_tabs: Canale",
+        value: msg.channel.name + ' **[' + msg.channel.id + ']**',
+        inline: true
+      },
+      {
+        name: ":snowflake: ID",
+        value: msg.id,
+        inline: true
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+    
+  message.delete().then(client.channels.get(guild[guildid].modlogchannel).send(deleteembed)).catch(console.error);
+
+  }
+
+  if (!message.content.startsWith(config.prefix)) return;
+  
+  if (talkedRecently.has(message.author.id))
+  return message.channel.send('You\'re going to fast! Please wait a moment!');
+  
+  var commands = ['help', 'ping', 'invite', 'support', 'servers', 'botinfo', 'setstatus', 'kick', 'ban', 'mute', 'userinfo', 'unmute'];
+  
+  var commandname = message.content.replace(config.prefix, '');
+  
+  var n = commandname.indexOf(' ');
+  commandname = commandname.substring(0, n != -1 ? n : commandname.length + 1);
+  
+  var commandbody = message.content.replace(config.prefix + commandname, '');
+  
+  if(commands.indexOf(commandname) < 0) return;
+  
+  switch (commandname) {
+      
+    case 'help':
+      message.channel.send(help);
+      
+      break;
+      
+    case 'ping':
+      message.channel.send('Pong!');
+      
+      break;
+    
+    case 'invite':
+      message.channel.send('Invite me to your server: <https://discordapp.com/api/oauth2/authorize?client_id=314110696071888896&permissions=470133958&scope=bot>');
+      
+      break;
+      
+    case 'support':
+      message.channel.send('Please join our support server: https://discord.gg/yjnZUQH');
+      
+      break;
+    
+    case 'servers':
+      message.channel.send('I\'m in ' + client.guilds.size + ' servers.');
+      
+      break;
+    
+    case 'botinfo':
+      
+      let infoembed = {embed: {
+    color: 0x008080,
+    title: ":information_source: MoonlightBot info",
+
+    fields: [{
+        name: ":id: ID ",
+        value: client.user.id
+      },
+      {
+        name: ":tickets: Discriminator",
+        value: client.user.tag,
+      },
+      {
+        name: ":battery: Status",
+        value: statustags[client.user.presence.status]
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+      
+      /*var binfo = '**Info for MoonlightBot** \n \
+**ID**: ' + client.user.id + '\n\
+**Discriminator**: ' + client.user.tag + '\n\
+**Status**: ' + statustags[client.user.presence.status] ;*/
+      
+      message.channel.send(infoembed);
+      
+      break;
+      
+    case 'setstatus':
+      if(message.author.id !== config.owner) { message.channel.send('Only bot owner can do this.'); return;}
+      
+      var args = commandbody.split(' ');
+      
+      client.user.setPresence({ status: args[1] })
+  .then(message.channel.send('New status: ' + client.user.presence.status));
+      
+      break;
+    
+    case 'kick':
+      
+
+      if(!message.member.roles.some(r=>guild[guildid].modroles.includes(r.name)) ) return message.reply("You need a mod role to use this command!");
+    
+      var args = commandbody.split(' ');
+    // Let's first check if we have a member and if we can kick them!
+    // message.mentions.members is a collection of people that have been mentioned, as GuildMembers.
+    var member = message.mentions.members.first();
+
+    if(!member)
+      return message.reply("Member supplied is not valid");
+    if(!member.kickable) 
+      return message.reply("Couldn't kick user: Either the user has an higher role than mine or i miss `KICK_MEMBERS` permissions.");
+    
+    // slice(1) removes the first part, which here should be the user mention!
+    let reason = args.slice(2).join(' ');
+    let target_tag = member.user.tag;
+    
+      let kickembed = {embed: {
+    color: 0xFF0000,
+    author: {
+      name: message.author.name,
+      icon_url: message.author.avatarURL
+    },
+    title: ":cd: User kicked",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: target_tag + ' **['+member.id+']**'
+      },
+      {
+        name: ":notepad_spiral: Reason",
+        value: reason == '' || reason == null || reason == undefined ? 'No reason specified' : reason,
+      },
+      {
+        name: ":cop: Responsible moderator",
+        value: message.author.tag + ' **['+message.author.id+']**'
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+      
+    // Now, time for a swift kick in the nuts!
+    member.kick('Member kicked by '+ message.author.tag + ' ['+message.author.id+'], Reason: ' + reason)
+      .then(message.channel.send('User kicked successfully!'))
+           .then(client.channels.get(guild[guildid].modlogchannel).send(kickembed))
+      .catch(error => message.reply('I was unable to kick the user.'));
+
+      
+      break;
+      
+      case 'ban':
+      
+
+      if(!message.member.roles.some(r=>guild[guildid].modroles.includes(r.name)) ) return message.reply("You need a mod role to use this command!");
+    
+      var args = commandbody.split(' ');
+    // Let's first check if we have a member and if we can kick them!
+    // message.mentions.members is a collection of people that have been mentioned, as GuildMembers.
+    var member = message.mentions.members.first();
+
+    if(!member)
+      return message.reply("Member supplied is not valid. Please note that you can ban only members in the server at the moment.");
+    if(!member.bannable) 
+      return message.reply("Couldn't ban user: Either the user has an higher role than mine or i miss `BAN_MEMBERS` permissions.");
+    
+    // slice(1) removes the first part, which here should be the user mention!
+    let reasonb = args.slice(2).join(' ');
+    let target_tagb = member.user.tag;
+    
+      let banembed = {embed: {
+    color: 0xFF0000,
+    author: {
+      name: message.author.name,
+      icon_url: message.author.avatarURL
+    },
+    title: ":dvd: User banned",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: target_tagb + ' **['+member.id+']**'
+      },
+      {
+        name: ":notepad_spiral: Reason",
+        value: reasonb == '' || reasonb == null || reasonb == undefined ? 'No reason specified' : reasonb,
+      },
+      {
+        name: ":cop: Responsible moderator",
+        value: message.author.tag + ' **['+message.author.id+']**'
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+      
+    // Now, time for a swift kick in the nuts!
+    member.ban('Member banned by '+ message.author.tag + ' ['+message.author.id+'], Reason: ' + reasonb)
+      .then(message.channel.send('User banned successfully!'))
+           .then(client.channels.get(guild[guildid].modlogchannel).send(banembed))
+      .catch(error => message.reply('I was unable to ban the user.'));
+
+      
+      break;
+    
+    case 'mute':
+      
+      if(!message.member.roles.some(r=>guild[guildid].modroles.includes(r.name)) ) return message.reply("You need a mod role to use this command!");
+      
+      var args = commandbody.split(' ');
+      let reasonm = args.slice(2).join(' ');
+      
+      let role = message.guild.roles.find("name", guild[guildid].mutedrole);
+
+      // Let's pretend you mentioned the user you want to add a role to (!addrole @user Role Name):
+      let guytomute = message.mentions.members.first();
+      if(!guytomute)
+      return message.reply("Member supplied is not valid.");
+      
+      // or the person who made the command: let member = message.member;
+    let muteembed = {embed: {
+    color: 0xFF0000,
+    author: {
+      name: message.author.name,
+      icon_url: message.author.avatarURL
+    },
+    title: ":zipper_mouth: User muted",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: guytomute.user.tag + ' **['+guytomute.id+']**'
+      },
+      {
+        name: ":notepad_spiral: Reason",
+        value: reasonm == '' || reasonm == null || reasonm == undefined ? 'No reason specified' : reasonm,
+      },
+      {
+        name: ":cop: Responsible moderator",
+        value: message.author.tag + ' **['+message.author.id+']**'
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+      // Add the role!
+      guytomute.addRole(role, 'Member muted by '+ message.author.tag + ' ['+message.author.id+'], Reason: ' + reasonm)
+        .then(client.channels.get(guild[guildid].modlogchannel).send(muteembed))
+        .catch(console.error);
+      
+      break;
+      
+    case 'unmute':
+      
+      if(!message.member.roles.some(r=>guild[guildid].modroles.includes(r.name)) ) return message.reply("You need a mod role to use this command!");
+      
+      var args = commandbody.split(' ');
+      let reasonum = args.slice(2).join(' ');
+      
+      let mrole = message.guild.roles.find("name", guild[guildid].mutedrole);
+
+      // Let's pretend you mentioned the user you want to add a role to (!addrole @user Role Name):
+      let guytounmute = message.mentions.members.first();
+      if(!guytounmute)
+      return message.reply("Member supplied is not valid.");
+      
+      // or the person who made the command: let member = message.member;
+    let unmuteembed = {embed: {
+    color: 0x1CB119,
+    author: {
+      name: message.author.name,
+      icon_url: message.author.avatarURL
+    },
+    title: ":smile: User unmuted",
+
+    fields: [{
+        name: ":bust_in_silhouette: User",
+        value: guytounmute.user.tag + ' **['+guytounmute.id+']**'
+      },
+      {
+        name: ":notepad_spiral: Reason",
+        value: reasonum == '' || reasonum == null || reasonum == undefined ? 'No reason specified' : reasonum,
+      },
+      {
+        name: ":cop: Responsible moderator",
+        value: message.author.tag + ' **['+message.author.id+']**'
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+      // Add the role!
+      guytounmute.removeRole(mrole, 'Member unmuted by '+ message.author.tag + ' ['+message.author.id+'], Reason: ' + reasonum)
+        .then(client.channels.get(guild[guildid].modlogchannel).send(unmuteembed))
+        .catch(console.error);
+      
+      break;
+    
+    case 'userinfo':
+      
+      var args = commandbody.split(' ');
+let cooldude = message.author;
+      
+      /*if(args.lenght > 1) {
+      let cooldude = client.fetchUser(args[1]);
+      }*/
+      
+      let uiembed = {embed: {
+    color: 0x4A90E2,
+    title: "Profile for " + cooldude.username,
+
+    fields: [{
+        name: ":tickets: Discriminator",
+        value: cooldude.tag
+      },
+      {
+        name: ":id: ID",
+        value: cooldude.id
+      },
+      {
+        name: ":battery: Status",
+        value: statustags[cooldude.presence.status]
+      }
+    ],
+    timestamp: new Date()
+  }
+};
+      message.channel.send(uiembed);
+      
+      break;
+                     }
+  
+  talkedRecently.add(message.author.id);
+setTimeout(() => {
+  // Removes the user from the set after 3 seconds
+  talkedRecently.delete(message.author.id);
+}, 3000);
+  
+});
+
+client.login(config.token);

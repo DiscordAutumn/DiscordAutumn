@@ -1,0 +1,14 @@
+{
+  "snowflake": {
+    
+    "modroles": ["Admin"],
+    
+    "exemptroles": ["something"],
+    
+    "mutedrole": "Muted",
+    
+    "badwords": ["some", "words"],
+    
+    "modlogchannel": "9450985494894040589459"
+  },
+}
